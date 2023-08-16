@@ -1,0 +1,12 @@
+# dag config
+dag_id: 'project'
+schedule: '*/10 * * * *'
+max_active_runs: 1
+catchup: False
+
+# github api
+url: "https://api.github.com/repos/{OWNER}/{REPO}/projects"
+params:
+  state: "all"
+  per_page: 30
+  page: 1
