@@ -4,8 +4,10 @@ schedule: '*/10 * * * *'
 max_active_runs: 1
 catchup: False
 
-# github api
-url: "https://api.github.com/licenses"
-params:
-  per_page: 30
-  page: 1
+# task config
+tasks:
+  license:
+    url: "https://api.github.com/licenses"
+    params:
+      per_page: 30
+      page: 1

@@ -1,8 +1,0 @@
-# dag config
-dag_id: 'contributor_activity'
-schedule: '*/10 * * * *'
-max_active_runs: 1
-catchup: False
-
-# github api
-url: "https://api.github.com/repos/{OWNER}/{REPO}/stats/code_frequency"

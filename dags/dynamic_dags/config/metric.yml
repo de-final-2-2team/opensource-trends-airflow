@@ -1,0 +1,18 @@
+# dag config
+dag_id: 'metric'
+schedule: '*/10 * * * *'
+max_active_runs: 1
+catchup: False
+
+# task conifg
+tasks:
+  contributor_activity:
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/stats/code_frequency"
+  code_frequency:
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/projects"
+    params:
+      state: "all"
+      per_page: 30
+      page: 1
+  commit_count:
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/stats/punch_card"

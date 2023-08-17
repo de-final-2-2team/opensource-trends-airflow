@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.models import Variable
-from airflow.decorators import task
+from airflow.decorators import task, task_group
 from airflow.exceptions import (
     AirflowException,
     AirflowBadRequest,
@@ -27,12 +27,10 @@ def get_header():
 
 
 @task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
-def extract(kind):
+def extract(kind, url, params=None):
     try:
         logging.info(f"[{kind}] 데이터 수집 시작")
         headers = get_header()
-        url = "{{ url }}"
-        params = {{ params or None }}
         response = requests.get(url=url, 
                                 headers=headers,
                                 params=params)
@@ -53,12 +51,26 @@ def extract(kind):
 
 @task
 def load_as_json(kind, content):
-    with open(f"./result/{kind}.json", 'w') as f:
+    with open(f"result/{kind}.json", 'w') as f:
         json.dump(content, f)
     if isinstance(content, list):
         logging.info(f"[{kind}] 데이터 수집 완료 | 데이터 수: {len(content)}")
     else:
         logging.info(f"[{kind}] 데이터 수집 완료")
+
+
+@task_group
+def get_requests():
+    tasks = {{ tasks }}
+    result = {}
+    for kind, task in tasks.items():
+        try:
+            result[kind] = extract(kind=kind, url=task.get('url'), params = task.get('params'))
+        except Exception as e:
+            logging.error(f"[{kind}-{kind}] 데이터 수집 실패\\n" + repr(e))
+            result[kind] = None
+    return result
+
 
 with DAG(
     dag_id="github_{{ dag_id }}",
@@ -66,4 +78,4 @@ with DAG(
     schedule='{{ schedule }}',
     catchup={{ catchup or True }}
 ) as dag:
-    load_as_json("{{ dag_id }}", extract("{{ dag_id }}"))
+    load_as_json("{{ dag_id }}", get_requests())
