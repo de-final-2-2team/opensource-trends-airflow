@@ -1,6 +1,6 @@
 # dag config
 dag_id: 'meta'
-schedule: '*/10 * * * *'
+schedule: '@daily'
 max_active_runs: 1
 catchup: False
 

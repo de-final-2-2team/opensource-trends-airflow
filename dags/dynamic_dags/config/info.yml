@@ -25,7 +25,7 @@ tasks:
       per_page: 30
       page: 1
   fork:
-    url: "https://api.github.com/repos/{owner}/{repo}/forks"
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/forks"
     params:
       # q:
       # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated

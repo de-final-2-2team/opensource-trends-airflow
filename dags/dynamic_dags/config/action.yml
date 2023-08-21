@@ -7,12 +7,12 @@ catchup: False
 # task config
 tasks:
   repository:
-    url: "https://api.github.com/repos/{owner}/{repo}/actions/workflows"
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows"
     params:
       per_page: 30
       page: 1
   workflow:
-    url: "https://api.github.com/repos/{owner}/{repo}/actions/runs"
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/actions/runs"
     params:
       # actor:
       # brnanch:
@@ -25,7 +25,7 @@ tasks:
       # check_suite_id:
       # head_sha:
   job:
-    url: "https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/jobs"
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/actions/runs/{run_id}/jobs"
     params:
       # filter: latest, all
       per_page: 30
