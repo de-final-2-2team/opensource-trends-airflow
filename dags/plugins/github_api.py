@@ -30,12 +30,12 @@ def get_request(kind, url, params=None):
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 400:
-            raise AirflowBadRequest(f"[{kind}] 데이터 수집 실패\\n" + response.content)
+            raise AirflowBadRequest(f"[{kind}] 데이터 수집 실패\\n" + response.text)
         elif response.status_code == 401:
-            raise AirflowException(f"[{kind}] 데이터 수집 실패\\n" + response.content)
+            raise AirflowException(f"[{kind}] 데이터 수집 실패\\n" + response.text)
         elif response.status_code == 404:
-            raise AirflowNotFoundException(f"[{kind}] 데이터 수집 실패\\n" + response.content)
+            raise AirflowNotFoundException(f"[{kind}] 데이터 수집 실패\\n" + response.text)
         else:
-            raise AirflowFailException(f"[{kind}] 데이터 수집 실패\\n" + response.content)
+            raise AirflowFailException(f"[{kind}] 데이터 수집 실패\\n" + response.text)
     except Exception as e:
         raise AirflowFailException(f"[{kind}] 데이터 수집 실패\\n" + repr(e))
