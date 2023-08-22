@@ -53,7 +53,7 @@ def remove_duplicates(content):
 
 
 @task_group
-def get_data(type):
+def get_data():
     tasks = {{ tasks }}
     result = {}
     for kind, task in tasks.items():
@@ -65,10 +65,10 @@ def get_data(type):
         except Exception as e:
             logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
             result[kind] = None
-    if type == 'repo':
-        result = remove_duplicates(result)
+    {% if dag_id == "repo" %}
+    result = remove_duplicates(result)
+    {% endif %}
     return result
-
 
 
 with DAG(
@@ -77,4 +77,4 @@ with DAG(
     schedule='{{ schedule }}',
     catchup={{ catchup or True }}
 ) as dag:
-    load(kind="{{ dag_id }}", content=get_data("{{ dag_id }}"))
+    load(kind="{{ dag_id }}", content=get_data())
