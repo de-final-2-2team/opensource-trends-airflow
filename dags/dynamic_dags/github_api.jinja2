@@ -11,13 +11,14 @@ from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from datetime import timedelta
 
-from dags.plugins.common import deep_get
-from dags.plugins.file_ops import load_as_json
-from dags.plugins.github_api import get_request
+from plugins.common import deep_get
+from plugins.file_ops import load_as_json
+from plugins.github_api import get_request
 
 import requests
 import logging
 import json
+import os
 
 
 @task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
@@ -41,11 +42,10 @@ def load(kind, content):
 def get_data():
     tasks = {{ tasks }}
     result = {}
-    for task in tasks:
-        kind = task.get('name')
+    for kind, task in tasks.items():
         try:
             if 'columns' in task:
-                result[kind] = transform(kind=kind, columns=task.get('columns'), reponse=extract(kind=kind, url=task.get('url'), params=task.get('params')))
+                result[kind] = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=task.get('url'), params=task.get('params')))
             else:
                 result[kind] = extract(kind=kind, url=task.get('url'), params=task.get('params'))
         except Exception as e:
@@ -60,4 +60,4 @@ with DAG(
     schedule='{{ schedule }}',
     catchup={{ catchup or True }}
 ) as dag:
-    load(kind={{ dag_id }}, content=get_data())
+    load(kind="{{ dag_id }}", content=get_data())
