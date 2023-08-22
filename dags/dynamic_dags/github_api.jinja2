@@ -54,10 +54,27 @@ def get_data():
     return result
 
 
+@task
+def remove_duplicates(content):
+    unique_items = []
+    item_keys = set()
+
+    for value in content.values():
+        for item in value:
+            item_id = item["NODE_ID"]
+            if item_id not in item_keys:
+                unique_items.append(item)
+                item_keys.add(item_id)
+    return unique_items
+
 with DAG(
     dag_id="github_{{ dag_id }}",
     start_date=datetime(2023, 6, 15),
     schedule='{{ schedule }}',
     catchup={{ catchup or True }}
 ) as dag:
+    contents = get_data()
     load(kind="{{ dag_id }}", content=get_data())
+
+    if '{{ dag_id }}' == 'repo':
+        unique_repos = remove_duplicates(contents)
