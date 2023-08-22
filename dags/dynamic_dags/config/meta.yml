@@ -11,3 +11,8 @@ tasks:
     params:
       per_page: 30
       page: 1
+    columns:
+      LIC_ID: "node_id"
+      LIC_KEY: "key"
+      LIC_NM: "name"
+      SPDX_ID: "spdx_id"

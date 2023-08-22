@@ -61,7 +61,12 @@ def get_data():
             if 'columns' in task:
                 result[kind] = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=task.get('url'), params=task.get('params')))
             else:
+                {% if dag_id == "repo" %}
+                data = extract(kind=kind, url=task.get('url'), params=task.get('params'))
+                result[kind] = [{"LANG_NM": key, "LANG_BYTE": value} for key, value in data.items()]
+                {% else %}
                 result[kind] = extract(kind=kind, url=task.get('url'), params=task.get('params'))
+                {% endif %}
         except Exception as e:
             logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
             result[kind] = None

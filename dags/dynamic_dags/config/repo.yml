@@ -15,7 +15,7 @@ tasks:
       per_page: 100
       page: 1
     columns:
-      NODE_ID: "node_id"
+      ID: "node_id"
       REPO_NM: "name"
       FULL_NM: "full_name"
       CREATED_AT: "created_at"
@@ -37,7 +37,7 @@ tasks:
       per_page: 100
       page: 1
     columns:
-      NODE_ID: "node_id"
+      ID: "node_id"
       REPO_NM: "name"
       FULL_NM: "full_name"
       CREATED_AT: "created_at"
