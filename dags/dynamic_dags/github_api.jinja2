@@ -38,22 +38,6 @@ def load(kind, content):
     load_as_json(dag_root_path, kind, content)
 
 
-@task_group
-def get_data():
-    tasks = {{ tasks }}
-    result = {}
-    for kind, task in tasks.items():
-        try:
-            if 'columns' in task:
-                result[kind] = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=task.get('url'), params=task.get('params')))
-            else:
-                result[kind] = extract(kind=kind, url=task.get('url'), params=task.get('params'))
-        except Exception as e:
-            logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
-            result[kind] = None
-    return result
-
-
 @task
 def remove_duplicates(content):
     unique_items = []
@@ -67,14 +51,30 @@ def remove_duplicates(content):
                 item_keys.add(item_id)
     return unique_items
 
+
+@task_group
+def get_data(type):
+    tasks = {{ tasks }}
+    result = {}
+    for kind, task in tasks.items():
+        try:
+            if 'columns' in task:
+                result[kind] = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=task.get('url'), params=task.get('params')))
+            else:
+                result[kind] = extract(kind=kind, url=task.get('url'), params=task.get('params'))
+        except Exception as e:
+            logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
+            result[kind] = None
+    if type == 'repo':
+        result = remove_duplicates(result)
+    return result
+
+
+
 with DAG(
     dag_id="github_{{ dag_id }}",
     start_date=datetime(2023, 6, 15),
     schedule='{{ schedule }}',
     catchup={{ catchup or True }}
 ) as dag:
-    contents = get_data()
-    load(kind="{{ dag_id }}", content=get_data())
-
-    if '{{ dag_id }}' == 'repo':
-        unique_repos = remove_duplicates(contents)
+    load(kind="{{ dag_id }}", content=get_data("{{ dag_id }}"))
