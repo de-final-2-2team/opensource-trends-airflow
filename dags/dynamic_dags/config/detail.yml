@@ -1,0 +1,37 @@
+# dag config
+dag_id: 'detail'
+schedule: '*/10 * * * *'
+max_active_runs: 1
+catchup: False
+
+# task config
+tasks:
+  issue_and_pr:
+    url: "https://api.github.com/search/issues?q=Q"
+    params:
+      # q:
+      # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      URL: "url"
+      TITLE: "title"
+      USER_ID: "user.node_id"
+      USER_NM: "user.login"
+      STATE: "state"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+      CLOSED_AT: "closed_at"
+  commit:
+    url: "https://api.github.com/repos/OWNER/REPO/commits"
+    params:
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      URL: "url"
+      AUTHOR_ID: "author.node_id"
+      AUTHOR_NM: "author.login"
+      MESSAGE: "message"
+      CREATED_AT: "created_at"

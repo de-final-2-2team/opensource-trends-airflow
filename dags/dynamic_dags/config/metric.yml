@@ -1,0 +1,19 @@
+# dag config
+dag_id: 'metric'
+schedule: '*/10 * * * *'
+max_active_runs: 1
+catchup: False
+
+# task conifg
+tasks:
+  commit_activity:
+    url: "https://api.github.com/repos/{OWNER}/{REPO}/stats/contributors"
+    columns:
+      ID: "author.node_id"
+      AUTHOR_NM: "author.login"
+      AUTHOR_TYPE: "author.type"
+      TOTAL_CNT: "total"
+      WEEK_UTC: "weeks.w"
+      ADD_CNT: "weeks.a"
+      DEL_CNT: "weeks.d"
+      COMMIT_CNT: "weeks.c"

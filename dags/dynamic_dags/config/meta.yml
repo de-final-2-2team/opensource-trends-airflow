@@ -1,0 +1,18 @@
+# dag config
+dag_id: 'meta'
+schedule: '@daily'
+max_active_runs: 1
+catchup: False
+
+# task config
+tasks:
+  license:
+    url: "https://api.github.com/licenses"
+    params:
+      per_page: 30
+      page: 1
+    columns:
+      LIC_ID: "node_id"
+      LIC_KEY: "key"
+      LIC_NM: "name"
+      SPDX_ID: "spdx_id"
