@@ -30,6 +30,55 @@ tasks:
       OPEN_ISSUE_CNT: "open_issues_count"
       SCORE: "score" 
       LIC_ID: "license.node_id"
+    check:
+      ID:
+        type: string
+        nullable: False
+      REPO_NM:
+        type: string
+        nullable: False
+      FULL_NM:
+        type: string
+        nullable: False
+      OWNER_ID:
+        type: string
+        nullable: False
+      OWNER_NM:
+        type: string
+        nullable: True
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      PUSHED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      STARGAZERS_CNT:
+        type: integer
+        nullable: False
+      WATCHERS_CNT:
+        type: string
+        nullable: False
+      LANG_NM:
+        type: string
+        nullable: True
+      FORKS_CNT:
+        type: interger
+        nullable: False
+      OPEN_ISSUE_CNT:
+        type: interger
+        nullable: False
+      SCORE:
+        type: interger
+        nullable: False
+      LIC_ID:
+        type: string
+        nullable: True
   repo_forks:
     url: "https://api.github.com/search/repositories?q=Q"
     params:
@@ -54,3 +103,52 @@ tasks:
       OPEN_ISSUE_CNT: "open_issues_count"
       SCORE: "score" 
       LIC_ID: "license.node_id"
+    check:
+      ID:
+        type: string
+        nullable: False
+      REPO_NM:
+        type: string
+        nullable: False
+      FULL_NM:
+        type: string
+        nullable: False
+      OWNER_ID:
+        type: string
+        nullable: False
+      OWNER_NM:
+        type: string
+        nullable: True
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      PUSHED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      STARGAZERS_CNT:
+        type: integer
+        nullable: False
+      WATCHERS_CNT:
+        type: string
+        nullable: False
+      LANG_NM:
+        type: string
+        nullable: True
+      FORKS_CNT:
+        type: interger
+        nullable: False
+      OPEN_ISSUE_CNT:
+        type: interger
+        nullable: False
+      SCORE:
+        type: interger
+        nullable: False
+      LIC_ID:
+        type: string
+        nullable: True
