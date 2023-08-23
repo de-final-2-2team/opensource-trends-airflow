@@ -14,6 +14,7 @@ from datetime import timedelta
 from plugins.common import deep_get
 from plugins.file_ops import load_as_json
 from plugins.github_api import get_request
+from plugins.redis_api import save_repo_to_redis
 
 import requests
 import logging
@@ -38,6 +39,20 @@ def load(kind, content):
     load_as_json(dag_root_path, kind, content)
 
 
+@task 
+def _save_repo_to_redis(content):
+    try:
+        for repo in content:
+            _id = repo.get('ID')
+            full_nm = repo.get('FULL_NM')
+            if _id and full_nm:
+                save_repo_to_redis(_id, full_nm)
+            else:
+                logging.error("레파지토리 ID 또는 FULL_NM 누락")
+    except Exception as e:
+        logging.error(f"레파지토리 정보 Redis 저장 실패 {e}")
+
+
 @task
 def remove_duplicates(content):
     unique_items = []
@@ -45,7 +60,7 @@ def remove_duplicates(content):
 
     for value in content.values():
         for item in value:
-            item_id = item["NODE_ID"]
+            item_id = item['ID']
             if item_id not in item_keys:
                 unique_items.append(item)
                 item_keys.add(item_id)
@@ -72,6 +87,7 @@ def get_data():
             result[kind] = None
     {% if dag_id == "repo" %}
     result = remove_duplicates(result)
+    _save_repo_to_redis(result)
     {% endif %}
     return result
 

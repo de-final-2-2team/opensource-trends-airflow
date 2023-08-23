@@ -7,23 +7,9 @@ api = Api(repo_bp, version='0.1', title="REDIS CRUD API for managing Github Repo
 repo_ns = Namespace('repo', description='Git Repo CRUD')
 
 repo_model = repo_ns.model('Repository', {
-    'id': fields.Integer(required=True, description='Repository ID'),
-    'node_id': fields.String(required=True, description='Repository ID'),
-    'name': fields.String(required=True, description='Repository Name'),
-    'full_name': fields.String(required=True, description='Full Repository Name'),
-    'description': fields.String(required=True, description='Repository Description'),
-    'created_at': fields.String(required=True, description='Creation Date'),
-    'updated_at': fields.String(required=True, description='Last Update Date'),
-    'pushed_at': fields.String(required=True, description='Last Push Date'),
-    'stargazers_count': fields.Integer(required=True, description='Stargazers Count'),
-    'watchers_count': fields.Integer(required=True, description='Watchers Count'),
-    'language': fields.String(required=True, description='Repository Language'),
-    'forks_count': fields.Integer(required=True, description='Forks Count'),
-    'open_issues_count': fields.Integer(required=True, description='Open Issues Count'),
-    'score': fields.Integer(required=True, description='Score'),
-    'license': fields.String(required=True, description='License Node ID')
+    'ID': fields.String(required=True, description='Repository ID'),
+    'FULL_NM': fields.String(required=True, description='Full Repository Name'),
 })
-
 
 DAO = RepoDAO()
 
@@ -42,7 +28,7 @@ class Repo(Resource):
             """
             try:
                 repo_data = request.json
-                repo_id = repo_data['id']
+                repo_id = repo_data['ID']
                 DAO.save(repo_id, repo_data)
                 return {"message": f"Success to save Repository {repo_id} to Redis."}, 201
             except Exception as e:
