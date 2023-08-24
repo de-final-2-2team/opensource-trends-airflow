@@ -112,3 +112,12 @@ def get_all_repo_data_from_redis():
     else:
         all_repo = json.loads(response_data)
     return all_repo
+
+def delete_all_repo_from_redis():
+    """
+    # 모든 repo 데이터를 삭제하는 함수
+    """
+    url = "http://flask-api:5000/repo/delete_all"
+    response_data = request_api(url, method='DELETE')
+    logging.info(f"[결과 delete_all_repo_from_redis] {response_data}")
+    return response_data

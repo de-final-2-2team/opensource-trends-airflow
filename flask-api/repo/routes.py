@@ -82,6 +82,22 @@ class Repo(Resource):
             except Exception as e:
                 return {"error": str(e)}, 500
 
+    @repo_ns.route('/delete_all')
+    class DeleteAllRepo(Resource):
+        @repo_ns.doc('delete_all_repo')
+        def delete(self):
+            """
+            # Repo 정보 삭제 (Delete)
+
+            :param repo_id: 삭제할 레포지토리의 ID
+            :return: 삭제 결과 메세지 또는 에러 메세지
+            """
+            try:
+                DAO.delete_all()
+                return {"message": f"Success to delete All Repository from Redis."}, 200
+            except Exception as e:
+                return {"error": str(e)}, 500
+
     @repo_ns.route('/all_ids', methods=['GET'])
     class AllRepoIds(Resource):
         @repo_ns.doc('get_all_repo_ids')

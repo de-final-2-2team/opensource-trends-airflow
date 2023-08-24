@@ -40,6 +40,12 @@ class RepoDAO(object):
         else:
             return False
 
+    def delete_all(self):
+        """
+        Redis에서 모든 레파지토리 정보를 삭제하는 함수
+        """
+        self.redis.delete("repo")
+
     def update(self, repo_id, repo_data):
         """
         Redis에서 레파지토리 정보를 업데이트하는 함수
