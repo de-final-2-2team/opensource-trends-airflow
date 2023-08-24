@@ -53,3 +53,26 @@ class RepoDAO(object):
             return True
         else:
             return False
+    
+    def get_all_repo_ids(self):
+        """
+        Redis에서 모든 레파지토리의 ID를 조회하는 함수
+
+        :return: 레파지토리 ID 리스트
+        """
+        repo_ids = self.redis.hkeys("repo")
+        return repo_ids
+
+    def get_all_repo_data(self):
+        """
+        Redis에서 모든 레파지토리 데이터를 조회하는 함수
+
+        :return: 모든 레파지토리 데이터 (레파지토리 ID를 키로 하는 딕셔너리)
+        """
+        all_repo_data = {}
+        repo_ids = self.get_all_repo_ids()
+        for repo_id in repo_ids:
+            repo_data = self.get(repo_id)
+            if repo_data:
+                all_repo_data[repo_id] = repo_data
+        return all_repo_data

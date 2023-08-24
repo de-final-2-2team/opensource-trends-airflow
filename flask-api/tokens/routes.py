@@ -95,12 +95,23 @@ class DeleteToken(Resource):
             redis.delete(key)
         return jsonify("All tokens have been deleted.")
 
+@tokens_ns.route('/init_tokens')
+class InitTokens(Resource):
+    def get(self):
+        """
+        # 모든 토큰 셋팅
+        """
+        TOKEN_NAME = os.environ.get("TOKEN_NAME")
+        git_tokens = get_aws_secret(TOKEN_NAME)
+        update_tokens_usage(git_tokens, is_update=True)
+
 # 네임스페이스 라우트 등록
 api.add_resource(AllTokens, '/get_all_tokens')
 api.add_resource(TokenInfo, '/get_token_info/<string:token_key>')
 api.add_resource(AvailableToken, '/get_available_token/<string:api_type>')
 api.add_resource(ReturnToken, '/return_token/<string:token_key>')
 api.add_resource(DeleteToken, '/delete_all_tokens')
+api.add_resource(InitTokens, '/init_tokens')
 
 # 초기화 코드
 @tokens_bp.before_request
