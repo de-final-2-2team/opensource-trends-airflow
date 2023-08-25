@@ -9,7 +9,8 @@ from airflow.exceptions import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
-
+from plugins.slack import SlackAlert
+from plugins.aws_secret import get_aws_secret
 
 import requests
 import logging
@@ -17,44 +18,61 @@ import json
 import os
 
 
+
+slack_token = get_aws_secret(secret_name = "slack-token")['slack-token']
+slack_alert = SlackAlert(channel="#monitoring_airflow", token=slack_token)
+
+
 @task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
 def extract(kind, url, params=None):
     from plugins.github_api import get_request
 
-    return get_request(kind=kind, url=url, params=params)
-
+    response = get_request(kind=kind, url=url, params=params)      
+    if isinstance(response, dict):
+        return response.get('items', [])
+    elif isinstance(response, list):
+        return response
+    else:
+        logging.error("올바르지 않은 응답 형식")
+        return []
 
 @task
 def transform(kind, columns, response):
     from plugins.common import deep_get
     
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 변환 시작")
-    transformed_data = []
-    if isinstance(response, dict):
-        response_items = response.get('items', [])
-    elif isinstance(response, list):
-        response_items = response
+    return [{new_col: deep_get(item, old_col) for new_col, old_col in columns.items()} for item in response]
+
+
+@task
+def check(kind, data_list: list, valid_check: dict):
+    from plugins.common import check_data
+    
+    logging.info(f"[{{ dag_id }}:{kind}] 데이터 값 검증 시작")
+    data = check_data(kind=kind, data_list=data_list, valid_check=valid_check)
+    checked_data = data.get('checked_data', [])
+    error_data = data.get('error_data', [])
+    if len(error_data) > 0:
+        slack_alert.fail_alert(content=error_data)
+        return checked_data
     else:
-        logging.error("올바르지 않은 응답 형식")
-        return []
-        
-    for item in response_items:
-        transformed_item = {new_col: deep_get(item, old_col) for new_col, old_col in columns.items()}
-        transformed_data.append(transformed_item)
-    return transformed_data
+        return checked_data
 
 
 @task
 def load(kind, content, repo=None):
     from plugins.file_ops import load_as_json
 
+    logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
     dag_root_path = os.path.dirname(os.path.abspath(__file__))
     load_as_json(dag_root_path, kind, content, repo)
+
 
 {% if dag_id == "repo" %}
 @task
 def _delete_all_repo_from_redis():
     from plugins.redis_api import delete_all_repo_from_redis
+    
     try:
         delete_all_repo_from_redis()
     except Exception as e:
@@ -91,7 +109,6 @@ def remove_duplicates(content):
     return unique_items
 
 
-
 {% if dag_id in ("repo", "meta") %}
 @task_group
 def etl():
@@ -108,15 +125,17 @@ def etl(repo_fullnm):
         url = task['url'].format(FULL_NM=repo_fullnm)
         {% endif %}
         try:
-            if 'columns' in task:
-                result[kind] = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=url, params=task.get('params')))
-            else:
-                {% if dag_id == "repo" %}
+            if kind.startswith('language'):
                 data = extract(kind=kind, url=url, params=task.get('params'))
-                result[kind] = [{"LANG_NM": key, "LANG_BYTE": value} for key, value in data.items()]
-                {% else %}
-                result[kind] = extract(kind=kind, url=url, params=task.get('params'))
-                {% endif %}
+                data = [{"LANG_NM": key, "LANG_BYTE": value} for key, value in data.items()]
+            elif 'columns' in task:
+                data = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=url, params=task.get('params')))
+            else:
+                data = extract(kind=kind, url=url, params=task.get('params'))
+            if 'check' in task:
+                result[kind] = check(kind=kind, data_list=data, valid_check=task['check'])
+            else:
+                result[kind] = data    
         except Exception as e:
             logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
             result[kind] = None
@@ -137,6 +156,8 @@ with DAG(
     start_date=datetime(2023, 8, 24),
     schedule='{{ schedule }}',
     catchup={{ catchup or True }},
+    on_success_callback=slack_alert.success_alert,
+    on_failure_callback=slack_alert.fail_alert,
     max_active_runs = 10
 ) as dag:
     {% if dag_id not in ("repo", "meta") %}

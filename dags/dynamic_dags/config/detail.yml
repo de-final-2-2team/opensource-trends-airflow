@@ -23,6 +23,37 @@ tasks:
       CREATED_AT: "created_at"
       UPDATED_AT: "updated_at"
       CLOSED_AT: "closed_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      TITLE:
+        type: string
+        nullable: false
+      USER_ID:
+        type: string
+        nullable: false
+      USER_NM:
+        type: string
+        nullable: false
+      STATE:
+        type: string
+        nullable: true
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+      CLOSED_AT:
+        type: string
+        # format: datetime
+        nullable: true
   pr:
     url: "https://api.github.com/repos/{FULL_NM}/pulls"
     params:
@@ -40,6 +71,37 @@ tasks:
       CREATED_AT: "created_at"
       UPDATED_AT: "updated_at"
       CLOSED_AT: "closed_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      TITLE:
+        type: string
+        nullable: false
+      USER_ID:
+        type: string
+        nullable: false
+      USER_NM:
+        type: string
+        nullable: false
+      STATE:
+        type: string
+        nullable: true
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+      CLOSED_AT:
+        type: string
+        # format: datetime
+        nullable: true
   commit:
     url: "https://api.github.com/repos/{FULL_NM}/commits"
     params:
@@ -52,3 +114,23 @@ tasks:
       AUTHOR_NM: "author.login"
       MESSAGE: "message"
       CREATED_AT: "created_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      AUTHOR_ID: 
+        type: string
+        nullable: false
+      AUTHOR_NM: 
+        type: string
+        nullable: false
+      MESSAGE: 
+        type: string
+        nullable: true
+      CREATED_AT: 
+        type: string
+        # format: datetime
+        nullable: false

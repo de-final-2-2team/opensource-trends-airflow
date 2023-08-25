@@ -16,3 +16,16 @@ tasks:
       LIC_KEY: "key"
       LIC_NM: "name"
       SPDX_ID: "spdx_id"
+    check:
+      LIC_ID:
+        type: string
+        nullable: False
+      LIC_KEY:
+        type: string
+        nullable: False
+      LIC_NM:
+        type: string
+        nullable: False
+      SPDX_ID:
+        type: string
+        nullable: True
