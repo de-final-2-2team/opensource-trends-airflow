@@ -7,7 +7,7 @@ catchup: False
 # task config
 tasks:
   release:
-    url: "https://api.github.com/repos/{OWNER}/{REPO}/tags"
+    url: "https://api.github.com/repos/{FULL_NM}/tags"
     params:
       per_page: 30
       page: 1
@@ -22,7 +22,7 @@ tasks:
         type: string
         nullable: false
   project:
-    url: "https://api.github.com/repos/{OWNER}/{REPO}/projects"
+    url: "https://api.github.com/repos/{FULL_NM}/projects"
     params:
       state: "all"
       per_page: 30
@@ -60,7 +60,7 @@ tasks:
         # format: datetime
         nullable: false
   language:
-    url: "https://api.github.com/repos/{OWNER}/{REPO}/languages"
+    url: "https://api.github.com/repos/{FULL_NM}/languages"
     check:
       LANG_NM: 
         type: string
@@ -69,7 +69,7 @@ tasks:
         type: integer
         nullable: False
   fork:
-    url: "https://api.github.com/repos/{OWNER}/{REPO}/forks"
+    url: "https://api.github.com/repos/{FULL_NM}/forks"
     params:
       # q:
       # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated

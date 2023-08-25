@@ -7,7 +7,7 @@ catchup: False
 # task conifg
 tasks:
   commit_activity:
-    url: "https://api.github.com/repos/{OWNER}/{REPO}/stats/contributors"
+    url: "https://api.github.com/repos/{FULL_NM}/stats/contributors"
     columns:
       ID: "author.node_id"
       AUTHOR_NM: "author.login"

@@ -7,7 +7,7 @@ catchup: False
 # task config
 tasks:
   repo_stars:
-    url: "https://api.github.com/search/repositories?q=Q"
+    url: "https://api.github.com/search/repositories?q={Q}"
     params:
       # sort: stars, forks, help-wanted-issues, updated
       sort: "stars"
@@ -80,7 +80,7 @@ tasks:
         type: string
         nullable: True
   repo_forks:
-    url: "https://api.github.com/search/repositories?q=Q"
+    url: "https://api.github.com/search/repositories?q={Q}"
     params:
       # sort: stars, forks, help-wanted-issues, updated
       sort: "forks"
