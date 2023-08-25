@@ -1,0 +1,29 @@
+dag_ids:
+  now 1-H: 
+    dag_id: 'now 1-H'
+    schedule: '*/10 * * * *'
+    catchup: False
+  now 4-H:
+    dag_id: 'now 4-H'
+    schedule: '*/10 * * * *'
+    catchup: False
+  now 1-d:
+    dag_id: 'now 1-d'
+    schedule:  '0 * * * *'
+    catchup: False
+  now 7-d:
+    dag_id: 'now 7-d'
+    schedule:  '0 * * * *'
+    catchup: False
+  today 1-m: 
+    dag_id: 'today 1-m'
+    schedule:  '0 0 * * *'
+    catchup: False
+  today 3-m:
+    dag_id: 'today 3-m'
+    schedule:  '0 0 * * *'
+    catchup: False
+  today 12-m:
+    dag_id: 'today 12-m'
+    schedule:  '0 0 * * *'
+    catchup: False

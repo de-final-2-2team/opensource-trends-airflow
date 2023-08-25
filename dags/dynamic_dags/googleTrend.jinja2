@@ -1,0 +1,157 @@
+from airflow import DAG
+from airflow.decorators import task, task_group
+
+from datetime import datetime
+from plugins.slack import SlackAlert
+from plugins.aws_secret import get_aws_secret
+
+import logging
+import pycountry
+
+slack_token = get_aws_secret(secret_name = "slack-token")['slack-token']
+slack_alert = SlackAlert(channel="#monitoring_airflow", token=slack_token)
+
+@task
+def extract(kind, keyword, geo):
+    from plugins.pytrend import get_request
+
+    response = get_request(kind=kind, keyword=keyword, timeframe="{{ dag_id }}", geo=geo)
+    return response
+
+@task
+def transform_it_time(keyword, geo, response):
+    if response.empty:
+        return []
+
+    response['TARGET_GEO_ID'] = geo
+    response['TF_ID'] = "{{ dag_id }}"
+    response['KEYWORD'] = keyword
+
+    new_column_names = {'isPartial': 'ISPARTIAL', f"{keyword}" : 'IT_CNT'}
+    response.rename(columns=new_column_names, inplace=True)
+    
+    response['date']= response['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    new_column_names = {'date':'IT_DATE'}
+    response.rename(columns=new_column_names, inplace=True)
+
+    result = response.to_dict(orient='records')
+    return result
+
+
+@task
+def transform_it_region(keyword, geo, response):
+    import numpy as np
+
+    if response.empty:
+        return []
+
+    if 'coordinates' in response:
+        response['LAT'] = response['coordinates'].apply(lambda coord: coord['lat'] if isinstance(coord, dict) else np.nan)
+        response['LNG'] = response['coordinates'].apply(lambda coord: coord['lng'] if isinstance(coord, dict) else np.nan)
+        response.drop('coordinates', axis=1, inplace=True)
+
+    response['TARGET_GEO_ID'] = geo
+    response['TF_ID'] = "{{ dag_id }}"
+    response['KEYWORD'] = keyword
+    
+    new_column_names = {'geoName': 'GEO_NAME', 'geoCode': 'GEO_CD', f"{keyword}" : 'IT_CNT'}
+    response.rename(columns=new_column_names, inplace=True)
+
+    result = response.to_dict(orient='records')
+    return result
+
+@task
+def transform_releated_topics(keyword, geo, response):
+    import pandas as pd
+
+    df_top = pd.DataFrame()
+    df_rising = pd.DataFrame()
+
+    if df_rising.empty and df_top.empty:
+        return []
+    if not response[keyword]['top'].empty:
+        df_top = response[keyword]['top'].reset_index()
+        df_top['TREND_TYPE'] = 'top'
+    if not response[keyword]['rising'].empty:
+        df_rising = response[keyword]['rising'].reset_index()
+        df_rising['TREND_TYPE'] = 'rising'
+
+    df_total = pd.concat([df_rising, df_top], ignore_index=True)
+    df_total['TARGET_GEO_ID'] = geo
+    df_total['TF_ID'] = "{{ dag_id }}"
+    df_total['KEYWORD'] = keyword
+
+    df_total.drop(['hasData', 'link', 'topic_mid'], axis=1, inplace=True)
+    new_column_names = {'index': 'RANKING', 'value': 'VALUE', 'formattedValue' : 'FORMATTED_VALUE', 'topic_title' : 'TOPIC_NM', 'topic_type': 'TOPIC_TYPE'}
+    df_total.rename(columns=new_column_names, inplace=True)
+
+    result = df_total.to_dict(orient='records')
+    return result
+
+
+@task
+def transform_releated_queries(keyword, geo, response):
+    import pandas as pd
+
+    df_top = pd.DataFrame()
+    df_rising = pd.DataFrame()
+
+    if df_rising.empty and df_top.empty:
+        return []
+    if not response[keyword]['top'].empty:
+        df_top = response[keyword]['top'].reset_index()
+        df_top['TREND_TYPE'] = 'top'
+    if not response[keyword]['rising'].empty:
+        df_rising = response[keyword]['rising'].reset_index()
+        df_rising['TREND_TYPE'] = 'rising'
+
+    df_total = pd.concat([df_rising, df_top], ignore_index=True)
+    df_total['TARGET_GEO_ID'] = geo
+    df_total['TF_ID'] = "{{ dag_id }}"
+    df_total['KEYWORD'] = keyword
+
+    new_column_names = {'index': 'RANKING', 'value': 'QEURY_CNT', 'query': 'QUERY'}
+    df_total.rename(columns=new_column_names, inplace=True)
+
+    result = df_total.to_dict(orient='records')
+    return result
+
+
+@task
+def load(kind, content, keyword):
+    from plugins.file_ops import load_as_json
+    import os
+
+    logging.info(f"[info:{kind}] 데이터 저장 시작")
+    dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sub_path = f"{{ dag_id }}/{kind}"
+    load_as_json(file_path=dag_root_path, subpath=sub_path,filename=keyword, content=content)
+
+@task_group
+def etl(keyword, geo):
+    result = {}
+    result['it_time'] = transform_it_time(keyword=keyword, geo=geo, response=extract(kind='it_time', keyword=keyword, geo=geo))
+    result['it_region'] = transform_it_region(keyword=keyword, geo=geo, response=extract(kind='it_region', keyword=keyword, geo=geo))
+    result['releated_topics'] = transform_releated_topics(keyword=keyword, geo=geo, response=extract(kind='releated_topics', keyword=keyword, geo=geo))
+    result['releated_queries'] = transform_releated_queries(keyword=keyword, geo=geo, response=extract(kind='releated_queries', keyword=keyword, geo=geo))
+    load(kind=geo,content=result,keyword=keyword)
+
+
+with DAG(
+    dag_id="googletrend_{{ dag_id }}",
+    start_date=datetime(2023, 8, 24),
+    schedule='{{ schedule }}',
+    catchup={{ catchup or False }},
+    on_success_callback=slack_alert.success_alert,
+    on_failure_callback=slack_alert.fail_alert,
+    max_active_runs = 10
+) as dag:
+
+    # <<TODO>> 키워드 리스트 받아오는 함수 필요함
+    keyword_list = ['python', 'c', 'c#']
+    country_codes = [country.alpha_2 for country in pycountry.countries]
+    country_codes.append('WORLD')
+
+    for keyword in keyword_list:
+        for geo in country_codes:
+            etl(keyword, geo)
