@@ -53,7 +53,7 @@ def check(kind, data_list: list, valid_check: dict):
     checked_data = data.get('checked_data', [])
     error_data = data.get('error_data', [])
     if len(error_data) > 0:
-        slack_alert.fail_alert(content=error_data)
+        slack_alert.fail_alert(context=error_data)
         return checked_data
     else:
         return checked_data
@@ -64,7 +64,7 @@ def load(kind, content, repo=None):
     from plugins.file_ops import load_as_json
 
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
-    dag_root_path = os.path.dirname(os.path.abspath(__file__))
+    dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     load_as_json(dag_root_path, kind, content, repo)
 
 

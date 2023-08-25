@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 def load_as_json(file_path, kind, content, repo=None):
-    save_path = f"{file_path}/../data/{kind}"
+    save_path = f"{file_path}/data/{kind}"
     os.makedirs(save_path, exist_ok=True)
 
     current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
