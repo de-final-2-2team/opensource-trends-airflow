@@ -7,23 +7,9 @@ api = Api(repo_bp, version='0.1', title="REDIS CRUD API for managing Github Repo
 repo_ns = Namespace('repo', description='Git Repo CRUD')
 
 repo_model = repo_ns.model('Repository', {
-    'id': fields.Integer(required=True, description='Repository ID'),
-    'node_id': fields.String(required=True, description='Repository ID'),
-    'name': fields.String(required=True, description='Repository Name'),
-    'full_name': fields.String(required=True, description='Full Repository Name'),
-    'description': fields.String(required=True, description='Repository Description'),
-    'created_at': fields.String(required=True, description='Creation Date'),
-    'updated_at': fields.String(required=True, description='Last Update Date'),
-    'pushed_at': fields.String(required=True, description='Last Push Date'),
-    'stargazers_count': fields.Integer(required=True, description='Stargazers Count'),
-    'watchers_count': fields.Integer(required=True, description='Watchers Count'),
-    'language': fields.String(required=True, description='Repository Language'),
-    'forks_count': fields.Integer(required=True, description='Forks Count'),
-    'open_issues_count': fields.Integer(required=True, description='Open Issues Count'),
-    'score': fields.Integer(required=True, description='Score'),
-    'license': fields.String(required=True, description='License Node ID')
+    'ID': fields.String(required=True, description='Repository ID'),
+    'FULL_NM': fields.String(required=True, description='Full Repository Name'),
 })
-
 
 DAO = RepoDAO()
 
@@ -31,7 +17,6 @@ class Repo(Resource):
 
     @repo_ns.route('/save_repo')
     class SaveRepo(Resource):
-
         @repo_ns.doc('save_repo')
         @repo_ns.expect(repo_model) 
         def post(self):
@@ -42,17 +27,16 @@ class Repo(Resource):
             """
             try:
                 repo_data = request.json
-                repo_id = repo_data['id']
+                repo_id = repo_data['ID']
                 DAO.save(repo_id, repo_data)
-                return {"message": f"Success to save Repository {repo_id} to Redis."}, 201
+                return {"message": f"Success to save Repository {repo_id} to Redis."}, 200
             except Exception as e:
                 return {"error": str(e)}, 500
-            
-    @repo_ns.route('/<int:repo_id>')
-    class RepoById(Resource):
 
+    @repo_ns.route('/<string:repo_id>')
+    class RepoById(Resource):
         @repo_ns.doc('get_repo')
-        def get(self, repo_id):
+        def get(self, repo_id: str):
             """
             # Repo 정보 조회 (Get)
             
@@ -78,9 +62,8 @@ class Repo(Resource):
             else:
                 return {"message": f"Repository {repo_id} not found."}, 404
 
-    @repo_ns.route('/update_repo/<int:repo_id>')
+    @repo_ns.route('/update_repo/<string:repo_id>')
     class UpdateRepo(Resource):
-        
         @repo_ns.doc('update_repo')
         @repo_ns.expect(repo_model)  
         def put(self, repo_id):
@@ -99,8 +82,45 @@ class Repo(Resource):
             except Exception as e:
                 return {"error": str(e)}, 500
 
+    @repo_ns.route('/delete_all')
+    class DeleteAllRepo(Resource):
+        @repo_ns.doc('delete_all_repo')
+        def delete(self):
+            """
+            # Repo 정보 삭제 (Delete)
+
+            :param repo_id: 삭제할 레포지토리의 ID
+            :return: 삭제 결과 메세지 또는 에러 메세지
+            """
+            try:
+                DAO.delete_all()
+                return {"message": f"Success to delete All Repository from Redis."}, 200
+            except Exception as e:
+                return {"error": str(e)}, 500
+
+    @repo_ns.route('/all_ids', methods=['GET'])
+    class AllRepoIds(Resource):
+        @repo_ns.doc('get_all_repo_ids')
+        def get(self):
+            """
+            # 모든 Repo ID 조회 (Get)
+
+            :return: 모든 레파지토리의 ID 리스트
+            """
+            repo_ids = DAO.get_all_repo_ids()
+            return repo_ids, 200
+
+
+    @repo_ns.route('/all_data', methods=['GET'])
+    class AllRepoData(Resource):
+        @repo_ns.doc('get_all_repo_data')
+        def get(self):
+            """
+            # 모든 Repo 데이터 조회 (Get)
+
+            :return: 모든 레파지토리 데이터 (레파지토리 ID를 키로 하는 딕셔너리)
+            """
+            all_repo_data = DAO.get_all_repo_data()
+            return all_repo_data, 200
 
 api.add_namespace(repo_ns, path='/repo')
-
-
-
