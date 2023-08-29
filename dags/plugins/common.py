@@ -3,8 +3,18 @@ import re
 import logging
 
 
-def deep_get(dictionary:dict, keys:str, default=None):
-    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
+def deep_get(dictionary: dict, keys: str, default=None):
+    keys_list = keys.split(".")
+    value = dictionary
+    for key in keys_list:
+        if isinstance(value, dict):
+            value = value.get(key, default)
+        elif key.startswith('language'): # 필드에 language 있는 경우 (*리스트)
+            value = [{"LANG_NM": key, "LANG_BYTE": val} for key, val in value.items()]
+        else:
+            value = default
+            break
+    return value
 
 
 def check_data(kind, data_list:list, valid_check:dict):
