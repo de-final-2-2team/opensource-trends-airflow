@@ -1,7 +1,7 @@
 # dag config
 dag_id: 'repo'
 schedule: '@daily'
-max_active_runs: 1
+max_active_runs: 3
 catchup: False
 
 # task config
