@@ -35,6 +35,12 @@ def get_request(kind, url, params=None):
             except json.JSONDecodeError:
                 logging.error(f"JSON 디코딩 오류: {response.text}")
                 return None
+        elif response.status_code == 410:
+            logging.error(f"[{kind}] 데이터 수집 실패 410 (리소스 없음)\\n" + response.text)
+            return None
+        elif response.status_code == 429:
+            logging.error(f"[{kind}] 데이터 수집 실패 429 (Too Many Requests)\\n" + response.text)
+            # <<TODO>> 토큰 교체 로직 추가 후 retry 되도록 수정하기
         elif response.status_code == 400:
             raise AirflowBadRequest(f"[{kind}] 데이터 수집 실패 400\\n" + response.text)
         elif response.status_code == 401:

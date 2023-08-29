@@ -27,7 +27,7 @@ def send_slack_message():
     return slack_alert
 
 
-@task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
+@task(trigger_rule=TriggerRule.ONE_FAILED, retries=1, pool="api_pool")
 def extract(kind, url, params=None):
     from plugins.github_api import get_request
 
@@ -216,13 +216,14 @@ def getData(repo_fullnm, repo_id):
 
 with DAG(
     dag_id="github_{{ dag_id }}",
-    start_date=datetime(2023, 8, 28),
+    start_date=datetime(2023, 8, 29),
     # schedule='{{ schedule }}',
     schedule=None,
     catchup={{ catchup }},
     on_success_callback=send_slack_message().success_alert,
     on_failure_callback=send_slack_message().fail_alert,
-    max_active_runs = 10
+    concurrency = 45, # 최대 n개의 task 동시 실행
+    max_active_runs = 3 # 최대 n개 dag run 동시 실행
 ) as dag:
     {% if dag_id not in ("repo", "meta") %}
     from plugins.redis_api import get_all_repo_data_from_redis
