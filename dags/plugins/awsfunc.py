@@ -11,7 +11,7 @@ class awsfunc:
             aws_access_key_id=Variable.get('aws_access_key_id'),
             aws_secret_access_key=Variable.get('aws_secret_access_key'),
             service_name=service_name,
-            region_name="ap-northeast-2"
+            region_name="us-east-1"
         )
 
     def getapikey(self, secret_id):
@@ -37,4 +37,5 @@ class awsfunc:
     
     def ec2tos3(self, Body, Bucket, Key):
         # ec2에서 추출한 데이터 s3로 write
-        self.client.put_object(Body=Body, Bucket=Bucket, Key=Key)
+        encoded_data = Body.encode('utf-8')
+        self.client.put_object(Body=encoded_data, Bucket=Bucket, Key=Key)

@@ -30,15 +30,15 @@ def get_request(kind, keyword, timeframe, geo):
                 df = _pytrends.interest_by_region(resolution=resolution, inc_low_vol=True, inc_geo_code=True).reset_index()
                 dataframes.append(df)
             result = pd.concat(dataframes, ignore_index=True)
-        elif kind == "releated_topics":
+        elif kind == "rel_topics":
             # :return  Dictionary
             result = _pytrends.related_topics()
-        elif kind == "releated_queries":
+        elif kind == "rel_queries":
             result = _pytrends.related_queries()
         else:
             raise AirflowException(f"[{kind}] pytrend 데이터 수집 실패 : 맞지 않는 kind 입니다.\\n")
         
-        logging.info(f"[get_request] {result}")
+        logging.info(f"[get_request] keyword: {keyword} result : {result}")
         return result
     except Exception as e:
         raise AirflowFailException(f"[{kind}] 데이터 수집 실패\\n" + repr(e))

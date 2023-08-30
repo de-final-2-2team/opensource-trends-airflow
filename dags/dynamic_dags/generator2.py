@@ -17,7 +17,7 @@ def generate_dags():
         config = yaml.safe_load(cf)
         for dag_id in config['dag_ids']:
             info = config['dag_ids'][dag_id]
-            with open(f"{dag_dir}/googletrend_{dag_id}.py", "w") as f:
+            with open(f"{dag_dir}/g_trend_{dag_id}.py", "w") as f:
                 f.write(template.render(info))
 with DAG(
     dag_id="googleTrend_api",
