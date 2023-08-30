@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 @task
-def load(kind, content, repo=None):
+def load(kind, content):
     from plugins.file_ops import load_as_json
     
     import logging
@@ -12,11 +12,11 @@ def load(kind, content, repo=None):
 
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
     dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_as_json(dag_root_path, kind, content, repo)
+    load_as_json(file_path=dag_root_path, filename=kind, content=content, subpath=kind)
 
 
 @task
-def get_topics(url, wait_time = 30):
+def get_topics(url, wait_time = 60):
     # selenium으로부터 webdriver 모듈을 불러옵니다.
     from selenium import webdriver
     from selenium.webdriver.common.by import By
@@ -51,6 +51,7 @@ def get_topics(url, wait_time = 30):
             except TimeoutException:
                 break
 
+
         # 링크 가져오기
         sections = driver.find_elements(By.CSS_SELECTOR, '.py-4 > .flex-column')
         try:
@@ -68,8 +69,8 @@ def get_topics(url, wait_time = 30):
 
 with DAG(
     dag_id="github_topic",
-    start_date=datetime(2023, 6, 15),
-    schedule='@daily',
+    start_date=datetime(2023, 8, 30),
+    schedule='52 23 * * *',
     catchup=False
 ) as dag:
-    load(kind="topic", content=get_topics(url="https://github.com/topics", wait_time=30))
+    load(kind="topic", content=get_topics(url="https://github.com/topics", wait_time=60))
