@@ -1,0 +1,131 @@
+# dag config
+dag_id: 'detail'
+schedule: '*/10 * * * *'
+max_active_runs: 1
+catchup: False
+
+# task config
+tasks:
+  issue:
+    url: "https://api.github.com/repos/{FULL_NM}/issues"
+    params:
+      # q:
+      # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      URL: "url"
+      TITLE: "title"
+      USER_ID: "user.node_id"
+      USER_NM: "user.login"
+      STATE: "state"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+      CLOSED_AT: "closed_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      TITLE:
+        type: string
+        nullable: false
+      USER_ID:
+        type: string
+        nullable: false
+      USER_NM:
+        type: string
+        nullable: false
+      STATE:
+        type: string
+        nullable: true
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+      CLOSED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+  pr:
+    url: "https://api.github.com/repos/{FULL_NM}/pulls"
+    params:
+      # q:
+      # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      URL: "url"
+      TITLE: "title"
+      USER_ID: "user.node_id"
+      USER_NM: "user.login"
+      STATE: "state"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+      CLOSED_AT: "closed_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      TITLE:
+        type: string
+        nullable: false
+      USER_ID:
+        type: string
+        nullable: false
+      USER_NM:
+        type: string
+        nullable: false
+      STATE:
+        type: string
+        nullable: true
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+      CLOSED_AT:
+        type: string
+        # format: datetime
+        nullable: true
+  commit:
+    url: "https://api.github.com/repos/{FULL_NM}/commits"
+    params:
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      URL: "url"
+      AUTHOR_ID: "author.node_id"
+      AUTHOR_NM: "author.login"
+      MESSAGE: "commit.message"
+    check:
+      ID:
+        type: string
+        nullable: false
+      URL:
+        type: string
+        nullable: false
+      AUTHOR_ID: 
+        type: string
+        nullable: false
+      AUTHOR_NM: 
+        type: string
+        nullable: false
+      MESSAGE: 
+        type: string
+        nullable: true

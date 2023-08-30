@@ -1,0 +1,154 @@
+# dag config
+dag_id: 'repo'
+schedule: '@daily'
+max_active_runs: 1
+catchup: False
+
+# task config
+tasks:
+  repo_stars:
+    url: "https://api.github.com/search/repositories?q={Q}"
+    params:
+      # sort: stars, forks, help-wanted-issues, updated
+      sort: "stars"
+      # order: desc(default), asc
+      per_page: 100
+      page: 1
+    columns:
+      ID: "node_id"
+      REPO_NM: "name"
+      FULL_NM: "full_name"
+      OWNER_ID: "owner.node_id"
+      OWNER_NM: "owner.login"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+      PUSHED_AT: "pushed_at"
+      STARGAZERS_CNT: "stargazers_count"
+      WATCHERS_CNT: "watchers_count"
+      LANG_NM: "language"
+      FORKS_CNT: "forks_count"
+      OPEN_ISSUE_CNT: "open_issues_count"
+      SCORE: "score" 
+      LIC_ID: "license.node_id"
+    check:
+      ID:
+        type: string
+        nullable: False
+      REPO_NM:
+        type: string
+        nullable: False
+      FULL_NM:
+        type: string
+        nullable: False
+      OWNER_ID:
+        type: string
+        nullable: False
+      OWNER_NM:
+        type: string
+        nullable: True
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      PUSHED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      STARGAZERS_CNT:
+        type: integer
+        nullable: False
+      WATCHERS_CNT:
+        type: string
+        nullable: False
+      LANG_NM:
+        type: string
+        nullable: True
+      FORKS_CNT:
+        type: interger
+        nullable: False
+      OPEN_ISSUE_CNT:
+        type: interger
+        nullable: False
+      SCORE:
+        type: interger
+        nullable: False
+      LIC_ID:
+        type: string
+        nullable: True
+  repo_forks:
+    url: "https://api.github.com/search/repositories?q={Q}"
+    params:
+      # sort: stars, forks, help-wanted-issues, updated
+      sort: "forks"
+      # order: desc(default), asc
+      per_page: 100
+      page: 1
+    columns:
+      ID: "node_id"
+      REPO_NM: "name"
+      FULL_NM: "full_name"
+      OWNER_ID: "owner.node_id"
+      OWNER_NM: "owner.login" 
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+      PUSHED_AT: "pushed_at"
+      STARGAZERS_CNT: "stargazers_count"
+      WATCHERS_CNT: "watchers_count"
+      LANG_NM: "language"
+      FORKS_CNT: "forks_count"
+      OPEN_ISSUE_CNT: "open_issues_count"
+      SCORE: "score" 
+      LIC_ID: "license.node_id"
+    check:
+      ID:
+        type: string
+        nullable: False
+      REPO_NM:
+        type: string
+        nullable: False
+      FULL_NM:
+        type: string
+        nullable: False
+      OWNER_ID:
+        type: string
+        nullable: False
+      OWNER_NM:
+        type: string
+        nullable: True
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      PUSHED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      STARGAZERS_CNT:
+        type: integer
+        nullable: False
+      WATCHERS_CNT:
+        type: string
+        nullable: False
+      LANG_NM:
+        type: string
+        nullable: True
+      FORKS_CNT:
+        type: interger
+        nullable: False
+      OPEN_ISSUE_CNT:
+        type: interger
+        nullable: False
+      SCORE:
+        type: interger
+        nullable: False
+      LIC_ID:
+        type: string
+        nullable: True

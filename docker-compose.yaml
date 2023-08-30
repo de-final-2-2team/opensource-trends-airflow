@@ -121,6 +121,18 @@ services:
       start_period: 30s
     restart: always
 
+  flask-api:
+    build:
+      context: ./flask-api
+      dockerfile: Dockerfile
+    env_file:
+      - ./flask-api/.env 
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    restart: always
+
   airflow-webserver:
     <<: *airflow-common
     command: webserver
