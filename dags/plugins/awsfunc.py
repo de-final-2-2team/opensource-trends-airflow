@@ -36,7 +36,7 @@ class awsfunc:
         except NoCredentialsError:
             print("No AWS credentials found.")
     
-    def ec2tos3(self, Body, Bucket, Path):
+    def ec2tos3(self, Body, Bucket, Key):
         # ec2에서 추출한 데이터 s3로 write
 
         encoded_data = Body.encode('utf-8')
