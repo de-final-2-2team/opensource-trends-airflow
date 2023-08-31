@@ -2,6 +2,7 @@
 import json
 import boto3
 import botocore
+from airflow.models import Variable
 from datetime import datetime, timedelta
 from botocore.exceptions import NoCredentialsError
 
@@ -11,6 +12,8 @@ class awsfunc:
         # Boto3 클라이언트 생성 (IAM 역할을 사용)
         session = boto3.session.Session()
         self.client = session.client(
+            aws_access_key_id=Variable.get('aws_access_key_id'),
+            aws_secret_access_key=Variable.get('aws_secret_access_key'),
             service_name=service_name,
             region_name="us-east-1"
         )
