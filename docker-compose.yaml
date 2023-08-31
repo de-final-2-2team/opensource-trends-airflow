@@ -338,6 +338,7 @@ services:
     ports:
       - 4444:4444
     restart: always
+    user: root
 
   statsd-exporter:
     image: prom/statsd-exporter
@@ -348,6 +349,7 @@ services:
       - 8125:8125/udp
     volumes:
       - ./statsd_mapping.conf:/tmp/statsd_mapping.conf
+    user: root
     
   prometheus:
     image: prom/prometheus
@@ -357,6 +359,7 @@ services:
     volumes:
         - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
         - ./prometheus/data:/prometheus
+    user: root
   
   grafana:
     image: grafana/grafana:latest
@@ -372,6 +375,7 @@ services:
     volumes:
       - ./grafana/data:/var/lib/grafana
       - ./grafana/provisioning:/grafana/provisioning
+    user: root
 
 volumes:
   postgres-db-volume:
