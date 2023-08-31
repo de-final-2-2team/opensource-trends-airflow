@@ -16,7 +16,7 @@ def load(kind, content):
 
 
 @task
-def get_topics(url, wait_time = 60):
+def get_topics(url, wait_time = 80):
     # selenium으로부터 webdriver 모듈을 불러옵니다.
     from selenium import webdriver
     from selenium.webdriver.common.by import By
@@ -27,6 +27,7 @@ def get_topics(url, wait_time = 60):
     from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
     import logging
+    import time
 
     options = webdriver.ChromeOptions()
     options.add_argument('headless')
@@ -40,10 +41,13 @@ def get_topics(url, wait_time = 60):
     topics = []
     with webdriver.Remote('remote_chromedriver:4444/wd/hub', options=options) as driver:
         driver.get(url)
-        element = WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, 'py-4')))
-
+        time.sleep(10)
+        WebDriverWait(driver, wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, 'py-4')))
+        time.sleep(10)
+        
         # 버튼 누르기
         while driver.find_element(By.CSS_SELECTOR, ".ajax-pagination-btn").is_displayed:
+            time.sleep(10)
             try:
                 WebDriverWait(driver, 1).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, ".ajax-pagination-btn"))
@@ -73,4 +77,4 @@ with DAG(
     schedule='52 23 * * *',
     catchup=False
 ) as dag:
-    load(kind="topic", content=get_topics(url="https://github.com/topics", wait_time=60))
+    load(kind="topic", content=get_topics(url="https://github.com/topics", wait_time=80))

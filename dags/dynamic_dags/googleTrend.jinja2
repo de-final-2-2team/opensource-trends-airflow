@@ -9,6 +9,13 @@ import logging
 import json
 import os
 
+country_codes = [
+    "AU", "AT", "BE", "CA", "CL", "CZ", "DK", "EE", "FI", "FR", 
+    "DE", "GR", "HU", "IS", "IE", "IT", "JP", "KR", "MX", "NL", 
+    "NZ", "NO", "PL", "PT", "SK", "SI", "ES", "SE", "CH", "TR", 
+    "GB", "US", 'WORLD'
+]
+kinds = ["it_time", "it_region", "rel_topics", "rel_queries"]
 
 
 def send_slack_message():
@@ -20,15 +27,42 @@ def send_slack_message():
     return slack_alert
 
 
-@task(trigger_rule=TriggerRule.ONE_FAILED, retries=1, pool="pytrend_pool")
-def extract(kind, keyword, geo):
-    from plugins.pytrend import get_request
-
-    response = get_request(kind=kind, keyword=keyword, timeframe="now 7-d", geo=geo)
-    return response
-
-
 @task
+def get_topic_names_from_json_files(directory):
+    topics = []
+    for filename in os.listdir(directory):
+        if filename.startswith("topic") and filename.endswith(".json"):
+            file_path = os.path.join(directory, filename)
+            with open(file_path, "r") as json_file:
+                data = json.load(json_file)
+                topics.extend(item.get("TOPIC_NM") for item in data if "TOPIC_NM" in item)
+    return {'topics' : topics}
+
+
+@task(pool="pytrend_pool")
+def extract(keywords:dict):
+    from plugins.pytrend import PyTrendsWrapper
+
+    pytrend = PyTrendsWrapper()
+    logging.info(f"[extract] 데이터 수집 시작")
+    result = {kind: [] for kind in ["it_time", "it_region", "rel_topics", "rel_queries"]}
+    for kind in kinds:
+        logging.info(f"[extract] 데이터 수집 시작 - kind: {kind}")
+        for keyword in keywords['topics']:
+            for geo in country_codes:
+                try:
+                    response = pytrend.get_request(kind=kind, keyword=keyword, timeframe="now 7-d", geo=geo)
+                    result[kind].append({
+                        'response': response,
+                        'keyword': keyword,
+                        'geo': geo 
+                    })
+                except Exception as e:
+                    logging.error(f"An error occurred: {e}")
+                    continue
+    return result
+
+
 def transform_it_time(keyword, geo, response):
     import numpy as np
     
@@ -51,7 +85,6 @@ def transform_it_time(keyword, geo, response):
     return result
 
 
-@task
 def transform_it_region(keyword, geo, response):
     import numpy as np
 
@@ -75,7 +108,6 @@ def transform_it_region(keyword, geo, response):
     return result
 
 
-@task
 def transform_rel_topics(keyword, geo, response):
     import pandas as pd
     import numpy as np
@@ -106,7 +138,6 @@ def transform_rel_topics(keyword, geo, response):
     return result
 
 
-@task
 def transform_rel_queries(keyword, geo, response):
     import pandas as pd
     import numpy as np
@@ -137,31 +168,45 @@ def transform_rel_queries(keyword, geo, response):
 
 
 @task
-def load(kind, content):
+def transform(raw_data):
+    logging.info(f"[transform] 데이터 변환 시작")
+
+    result = {kind: [] for kind in ["it_time", "it_region", "rel_topics", "rel_queries"]}
+    
+    for item in raw_data['it_time']:
+        result['it_time'].append(transform_it_time(keyword=item.get('keyword'), geo=item.get('geo'), response=item.get('response')))
+    for item in raw_data['it_region']:
+        result['it_region'].append(transform_it_region(keyword=item.get('keyword'), geo=item.get('geo'), response=item.get('response')))
+    for item in raw_data['rel_topics']:
+        result['rel_topics'].append(transform_rel_topics(keyword=item.get('keyword'), geo=item.get('geo'), response=item.get('response')))
+    for item in raw_data['rel_queries']:
+        result['rel_queries'].append(transform_rel_queries(keyword=item.get('keyword'), geo=item.get('geo'), response=item.get('response')))
+    return result
+
+
+@task
+def load(transform_data):
     from plugins.awsfunc import awsfunc
     from plugins.file_ops import load_as_json
     import os
 
-    utc_now = datetime.now(timezone.utc)
-
     s3_handler = awsfunc('s3')
     bucket_name = "de-2-2"
-    file_key = f"raw/googletrend/{kind}/{{ dag_id }}.json"
 
-    logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
-    s3_handler.ec2tos3(json.dumps(content), bucket_name, file_key)
-    # dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # load_as_json(file_path=dag_root_path, filename="{{ dag_id }}", content=content)
+    for kind in kinds:
+        for content in transform_data[kind]:
+            file_key = f"raw/googletrend/{kind}/{{ dag_id }}.json"
+
+            logging.info(f"[four_hour:{kind}] 데이터 저장 시작")
+            s3_handler.ec2tos3(json.dumps(content), bucket_name, file_key)
+            # dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # load_as_json(file_path=dag_root_path, subpath=kind, filename="four_hour", content=content)
+
 
 @task_group
-def getData(keyword, geo):   
-    result = {
-        'it_time': transform_it_time(response=extract(kind='it_time', keyword=keyword, geo=geo), keyword=keyword, geo=geo),
-        'it_region': transform_it_region(response=extract(kind='it_region', keyword=keyword, geo=geo), keyword=keyword, geo=geo),
-        'rel_topics': transform_rel_topics(response=extract(kind='rel_topics', keyword=keyword, geo=geo), keyword=keyword, geo=geo),
-        'rel_queries': transform_rel_queries(response=extract(kind='rel_queries', keyword=keyword, geo=geo), keyword=keyword, geo=geo)
-    }
-    return result
+def ETL(keywords:dict):
+    load(transform(extract(keywords)))
+
 
 with DAG(
     dag_id="g_trend_{{ dag_id }}",
@@ -174,30 +219,5 @@ with DAG(
     max_active_tasks=60
 ) as dag:
 
-    # <<TODO>> 키워드 리스트 받아오는 함수 필요함
-    keyword_list = ['python', 'c', 'c#']
-
-    country_codes = [
-    "AU", "AT", "BE", "CA", "CL", "CZ", "DK", "EE", "FI", "FR", 
-    "DE", "GR", "HU", "IS", "IE", "IT", "JP", "KR", "MX", "NL", 
-    "NZ", "NO", "PL", "PT", "SK", "SI", "ES", "SE", "CH", "TR", 
-    "GB", "US", 'WORLD'
-    ]
-
-    result_it_time = []
-    result_it_region = []
-    result_rel_topics = []
-    result_rel_queries = []
-
-    for keyword in keyword_list:
-        for geo in country_codes:
-            data = getData(keyword, geo)
-            result_it_time.append(data['it_time'])
-            result_it_region.append(data['it_region'])
-            result_rel_topics.append(data['rel_topics'])
-            result_rel_queries.append(data['rel_queries'])
-    
-    load(kind='it_time',content=result_it_time)
-    load(kind='it_region',content=result_it_region)
-    load(kind='rel_topics',content=result_rel_topics)
-    load(kind='rel_queries',content=result_rel_queries)
+    dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/data/topic"
+    ETL(keywords=get_topic_names_from_json_files(dag_root_path))
