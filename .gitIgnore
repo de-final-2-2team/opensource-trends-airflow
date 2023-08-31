@@ -162,3 +162,6 @@ logs/
 data/*
 env/
 flask-api/config.py
+prometheus/data/
+grafana/
+

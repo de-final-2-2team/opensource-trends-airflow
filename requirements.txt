@@ -2,3 +2,4 @@ selenium == 4.10.0
 webdriver_manager == 3.8.6
 slack_sdk
 boto3
+apache-airflow[statsd]
