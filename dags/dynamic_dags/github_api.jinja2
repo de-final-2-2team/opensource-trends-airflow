@@ -129,8 +129,6 @@ def load(kind, content, repo=None):
 
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
     s3_handler.ec2tos3(json.dumps(content), bucket_name, file_key)
-    dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_as_json(dag_root_path, kind, content, repo)
 
 
 {% if dag_id == "repo" %}
