@@ -61,12 +61,26 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__FERNET_KEY: ""
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DEFUALT_TIMEZONE: utc
+    AIRFLOW__CORE__PARALLELISM: '512'
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 512
     AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
     # See https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/check-health.html#scheduler-health-check-server
     # yamllint enable rule:line-length
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 40
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: 60
+    AIRFLOW__SCHEDULER__PARSING_PROCESSES: 4 
+    AIRFLOW__WEBSERVER__PAGE_SIZE: 50  # default 100
+    AIRFLOW__WEBSERVER__WORKER_REFRESH_INTERVAL: 1800  # default 30
+    AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300  # default 120
+    # Monitoring - StatsD
+    AIRFLOW__METRICS__STATSD_ON: 'True'
+    AIRFLOW__METRICS__STATSD_HOST: 'statsd-exporter' 
+    AIRFLOW__METRICS__STATSD_PORT: 8125
+    AIRFLOW__METRICS__STATSD_PREFIX: 'airflow'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
@@ -336,6 +350,40 @@ services:
     restart: always
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/downloads:/opt/airflow/downloads
+
+  statsd-exporter:
+    image: prom/statsd-exporter
+    container_name: statsd-exporter
+    command: "--statsd.listen-udp=:8125 --web.listen-address=:9102 --statsd.mapping-config=/tmp/statsd_mapping.conf"
+    ports:
+      - 9102:9102
+      - 8125:8125/udp
+    volumes:
+      - ./statsd_mapping.conf:/tmp/statsd_mapping.conf
+    
+  prometheus:
+    image: prom/prometheus
+    container_name: airflow-prometheus
+    ports:
+        - 9092:9090
+    volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        - ./prometheus/data:/prometheus
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: airflow-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: grafana
+      GF_SECURITY_ADMIN_PASSWORD: grafana
+      GF_PATHS_PROVISIONG: /etc/grafana/provisioning
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/grafana/provisioning
 
 volumes:
   postgres-db-volume:

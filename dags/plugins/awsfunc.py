@@ -38,7 +38,9 @@ class awsfunc:
     
     def ec2tos3(self, Body, Bucket, Path):
         # ec2에서 추출한 데이터 s3로 write
-        self.client.put_object(Body=Body, Bucket=Bucket, Key=Path)
+
+        encoded_data = Body.encode('utf-8')
+        self.client.put_object(Body=encoded_data, Bucket=Bucket, Key=Key)
 
     def read_json_from_s3(self, Bucket, Path):
         response = self.client.get_object(Bucket=Bucket, Key=Path)
@@ -54,3 +56,4 @@ class awsfunc:
         return file_path
             
             
+
