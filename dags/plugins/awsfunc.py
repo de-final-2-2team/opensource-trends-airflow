@@ -4,7 +4,7 @@ import boto3
 import botocore
 from datetime import datetime, timedelta
 from botocore.exceptions import NoCredentialsError
-import pandas as pd
+
 
 class awsfunc:
     def __init__(self, service_name):
