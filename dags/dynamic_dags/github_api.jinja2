@@ -8,9 +8,8 @@ from airflow.exceptions import (
     AirflowFailException
 )
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
+from datetime import datetime, timezone
 from plugins.slack import SlackAlert
-from plugins.aws_secret import get_aws_secret
 
 import requests
 import logging
@@ -19,29 +18,85 @@ import os
 
 
 
-slack_token = get_aws_secret(secret_name = "slack-token")['slack-token']
-slack_alert = SlackAlert(channel="#monitoring_airflow", token=slack_token)
+def send_slack_message():
+    from plugins.awsfunc import awsfunc
+
+    s3_handler = awsfunc('secretsmanager')
+    slack_token = s3_handler.getapikey(secret_id="slack-token")
+    slack_alert = SlackAlert(channel="#monitoring_airflow", token=slack_token)
+    return slack_alert
 
 
-@task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
+@task(trigger_rule=TriggerRule.ONE_FAILED, retries=1, pool="api_pool")
 def extract(kind, url, params=None):
     from plugins.github_api import get_request
 
     response = get_request(kind=kind, url=url, params=params)      
     if isinstance(response, dict):
-        return response.get('items', [])
+        if kind.startswith('language'): # info의 language
+            response = [{"LANG_NM": key, "LANG_BYTE": value} for key, value in response.items()]
+            return response
+        else:
+            return response.get('items', [])
     elif isinstance(response, list):
         return response
     else:
         logging.error("올바르지 않은 응답 형식")
         return []
 
+{% if dag_id == "metric" %}
+@task
+def transform(kind, columns, response, repo_id):
+    """
+    ## metric만 별도임
+    """
+    from plugins.common import deep_get
+    
+    logging.info(f"[{{ dag_id }}:{kind}] 데이터 변환 시작")
+    transformed_data = []
+    for res in response:
+        transformed_item = {}
+        for new_col, old_col in columns.items():
+            if not old_col.startswith("weeks"):
+                value = deep_get(res, old_col)
+            transformed_item[new_col] = value 
+            transformed_item['REPO_ID'] = repo_id
+        
+        # week 정보만 따로 변형
+        for week in res.get("weeks") :
+            week_item = {}
+            week_item["WEEK_UTC"] = week.get("w") 
+            week_item["ADD_CNT"] = week.get("a") 
+            week_item["DEL_CNT"] = week.get("d") 
+            week_item["COMMIT_CNT"] = week.get("c")
+            week_item.update(transformed_item)
+            transformed_data.append(week_item)
+
+    return transformed_data
+{% elif  dag_id in ("repo", "meta") %}
 @task
 def transform(kind, columns, response):
     from plugins.common import deep_get
     
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 변환 시작")
     return [{new_col: deep_get(item, old_col) for new_col, old_col in columns.items()} for item in response]
+{% else %}
+@task
+def transform(kind, columns, response, repo_id):
+    from plugins.common import deep_get
+    
+    logging.info(f"[detail:{kind}] 데이터 변환 시작")
+    transformed_data = []
+    for item in response:
+        transformed_item = {}
+        for new_col, old_col in columns.items():
+            value = deep_get(item, old_col)
+            transformed_item[new_col] = value
+            transformed_item['REPO_ID'] = repo_id # repo_id 추가
+        transformed_data.append(transformed_item)
+    
+    return transformed_data
+{% endif %}
 
 
 @task
@@ -53,7 +108,7 @@ def check(kind, data_list: list, valid_check: dict):
     checked_data = data.get('checked_data', [])
     error_data = data.get('error_data', [])
     if len(error_data) > 0:
-        slack_alert.fail_alert(context=error_data)
+        send_slack_message().fail_alert(context=error_data)
         return checked_data
     else:
         return checked_data
@@ -61,9 +116,19 @@ def check(kind, data_list: list, valid_check: dict):
 
 @task
 def load(kind, content, repo=None):
+    from plugins.awsfunc import awsfunc
     from plugins.file_ops import load_as_json
 
+    utc_now = datetime.now(timezone.utc)
+    time_str = utc_now.strftime("%Y-%m-%d_%H-%M-%S")
+    date_str = utc_now.strftime("%Y/%m/%d")
+
+    s3_handler = awsfunc('s3')
+    bucket_name = "de-2-2"
+    file_key = f"raw/github/{{ dag_id }}/{date_str}/{time_str}.json"
+
     logging.info(f"[{{ dag_id }}:{kind}] 데이터 저장 시작")
+    s3_handler.ec2tos3(json.dumps(content), bucket_name, file_key)
     dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     load_as_json(dag_root_path, kind, content, repo)
 
@@ -108,13 +173,12 @@ def remove_duplicates(content):
                 item_keys.add(item_id)
     return unique_items
 
-
 {% if dag_id in ("repo", "meta") %}
 @task_group
-def etl():
+def getData():
 {% else %}
 @task_group
-def etl(repo_fullnm):
+def getData(repo_fullnm, repo_id):
 {% endif %}
     result = {}
     tasks = {{ tasks }}
@@ -127,15 +191,18 @@ def etl(repo_fullnm):
         try:
             if kind.startswith('language'):
                 data = extract(kind=kind, url=url, params=task.get('params'))
-                data = [{"LANG_NM": key, "LANG_BYTE": value} for key, value in data.items()]
             elif 'columns' in task:
+                {% if dag_id in ("repo", "meta") %}
                 data = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=url, params=task.get('params')))
+                {% else %}
+                data = transform(kind=kind, columns=task.get('columns'), response=extract(kind=kind, url=url, params=task.get('params')), repo_id=repo_id)
+                {% endif %}
             else:
                 data = extract(kind=kind, url=url, params=task.get('params'))
             if 'check' in task:
                 result[kind] = check(kind=kind, data_list=data, valid_check=task['check'])
             else:
-                result[kind] = data    
+                result[kind] = data
         except Exception as e:
             logging.error(f"[{{ dag_id }}:{kind}] 데이터 수집 실패\\n" + repr(e))
             result[kind] = None
@@ -144,28 +211,32 @@ def etl(repo_fullnm):
     _delete_all_repo_from_redis()
     _save_repo_to_redis(result)
     {% endif %}
-    {% if dag_id not in ("repo", "meta") %}
-    load(kind="{{ dag_id }}", content=result, repo= repo_fullnm.replace("/", "_"))
-    {% else %}
-    load(kind="{{ dag_id }}", content=result)
-    {% endif %}
+    return result
 
 
 with DAG(
     dag_id="github_{{ dag_id }}",
-    start_date=datetime(2023, 8, 24),
-    schedule='{{ schedule }}',
-    catchup={{ catchup or True }},
-    on_success_callback=slack_alert.success_alert,
-    on_failure_callback=slack_alert.fail_alert,
-    max_active_runs = 10
+    start_date=datetime(2023, 8, 29),
+    # schedule='{{ schedule }}',
+    schedule=None,
+    catchup={{ catchup }},
+    on_success_callback=send_slack_message().success_alert,
+    on_failure_callback=send_slack_message().fail_alert,
+    concurrency = 90, 
+    max_active_runs = {{ max_active_runs }} 
 ) as dag:
     {% if dag_id not in ("repo", "meta") %}
     from plugins.redis_api import get_all_repo_data_from_redis
-    
+    all_data = {}
+
     repositories = get_all_repo_data_from_redis()
     for repo_info in repositories.values():
-        etl(repo_info.get("FULL_NM"))
+        repo_id = repo_info.get("ID")
+        data = getData(repo_info.get("FULL_NM"), repo_id=repo_id)
+        if data:
+            all_data[repo_id] = data
+    
+    load(kind="{{ dag_id }}", content=all_data)
     {% else %}
-    etl()
+    load(kind="{{ dag_id }}", content=getData())
     {% endif %}
