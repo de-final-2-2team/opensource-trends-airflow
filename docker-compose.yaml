@@ -76,6 +76,11 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__PAGE_SIZE: 50  # default 100
     AIRFLOW__WEBSERVER__WORKER_REFRESH_INTERVAL: 1800  # default 30
     AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300  # default 120
+    # Monitoring - StatsD
+    AIRFLOW__METRICS__STATSD_ON: 'True'
+    AIRFLOW__METRICS__STATSD_HOST: 'statsd-exporter' 
+    AIRFLOW__METRICS__STATSD_PORT: 8125
+    AIRFLOW__METRICS__STATSD_PREFIX: 'airflow'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
@@ -333,6 +338,40 @@ services:
     ports:
       - 4444:4444
     restart: always
+
+  statsd-exporter:
+    image: prom/statsd-exporter
+    container_name: statsd-exporter
+    command: "--statsd.listen-udp=:8125 --web.listen-address=:9102 --statsd.mapping-config=/tmp/statsd_mapping.conf"
+    ports:
+      - 9102:9102
+      - 8125:8125/udp
+    volumes:
+      - ./statsd_mapping.conf:/tmp/statsd_mapping.conf
+    
+  prometheus:
+    image: prom/prometheus
+    container_name: airflow-prometheus
+    ports:
+        - 9092:9090
+    volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        - ./prometheus/data:/prometheus
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: airflow-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: grafana
+      GF_SECURITY_ADMIN_PASSWORD: grafana
+      GF_PATHS_PROVISIONG: /etc/grafana/provisioning
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/grafana/provisioning
 
 volumes:
   postgres-db-volume:
