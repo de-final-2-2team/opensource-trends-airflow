@@ -9,12 +9,20 @@ from airflow.exceptions import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime, timezone
+from plugins.slack import SlackAlert
 
 import requests
 import logging
 import json
 import os
 
+def send_slack_message():
+    from plugins.awsfunc import awsfunc
+
+    s3_handler = awsfunc('secretsmanager')
+    slack_token = s3_handler.getapikey(secret_id="slack-token")
+    slack_alert = SlackAlert(channel="#monitoring_airflow", token=slack_token)
+    return slack_alert
 
 @task(trigger_rule=TriggerRule.ONE_FAILED, retries=1)
 def extract(kind, url, params):
@@ -48,12 +56,10 @@ def transform(kind, columns, response, repo_id):
 @task
 def load(kind, content, repo=None):
     from plugins.awsfunc import awsfunc
-    from plugins.file_ops import load_as_json
 
     logging.info(f"[{kind}] 데이터 저장 시작")
-    dag_root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_as_json(dag_root_path, kind, content, repo)
     content = json.dumps(content)
+
     Bucket = 'de-2-2'
     save_path = 'raw/stackoverflow/question_list/'
     utc_now = datetime.now(timezone.utc)
@@ -73,7 +79,7 @@ def check(kind, data_list: list, valid_check: dict):
     checked_data = data.get('checked_data', [])
     error_data = data.get('error_data', [])
     if len(error_data) > 0:
-        logging.info(f"{error_data}")
+        send_slack_message().fail_alert(context=error_data)
         return checked_data
     else:
         return checked_data
@@ -85,12 +91,11 @@ def remove_duplicates(content):
 
     for value in content.values():
         for item in value:
-            item_id = item["NODE_ID"]
+            item_id = item['ID']
             if item_id not in item_keys:
                 unique_items.append(item)
                 item_keys.add(item_id)
     return unique_items
-
 
 @task_group
 def getData(repo_fullnm, repo_id):
@@ -124,10 +129,10 @@ def getData(repo_fullnm, repo_id):
 with DAG(
     dag_id="stackoverflow_question_list",
     start_date=datetime(2023, 8, 29),
-    schedule='@once',
+    schedule='10 */12 * * *',
     catchup=False,
-    # on_success_callback=send_slack_message().success_alert,
-    # on_failure_callback=send_slack_message().fail_alert,
+    on_success_callback=send_slack_message().success_alert,
+    on_failure_callback=send_slack_message().fail_alert,
     concurrency = 90, # 최대 n개의 task 동시 실행
     max_active_runs = 3, # 최대 n개 dag run 동시 실행
 
