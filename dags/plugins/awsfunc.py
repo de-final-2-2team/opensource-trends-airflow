@@ -39,3 +39,8 @@ class awsfunc:
         # ec2에서 추출한 데이터 s3로 write
         encoded_data = Body.encode('utf-8')
         self.client.put_object(Body=encoded_data, Bucket=Bucket, Key=Key)
+
+    def get_file_list_from_s3(self, Bucket, Path):
+        objects = self.client.list_objects_v2(Bucket=Bucket, Prefix = Path)
+        contents = objects.get('Contents', [])
+        return contents
