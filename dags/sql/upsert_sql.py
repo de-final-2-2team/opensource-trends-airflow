@@ -171,15 +171,17 @@ credentials=(AWS_KEY_ID='{{ params.AWS_KEY_ID}}', AWS_SECRET_KEY='{{ params.AWS_
 FILE_FORMAT = (type='parquet')
 match_by_column_name = case_insensitive;
 
-
 MERGE INTO LANGUAGE_TB AS target
 USING {{ params.table }} AS source
 ON target.REPO_ID = source.REPO_ID
-WHEN MATCHED AND target.COLLECTED_AT < source.COLLECTED_AT THEN
+WHEN MATCHED AND (
+    target.LANG_NM = source.LANG_NM AND
+    target.REPO_ID = source.REPO_ID
+    AND target.COLLECTED_AT < source.COLLECTED_AT
+)
+THEN
     UPDATE SET
-        target.LANG_BYTE = source.LANG_BYTE,
-        target.COLLECTED_AT = source.COLLECTED_AT,
-        target.LANG_NM = source.LANG_NM
+        target.COLLECTED_AT = source.COLLECTED_AT
 WHEN NOT MATCHED THEN
     INSERT (LANG_NM, LANG_BYTE, COLLECTED_AT, REPO_ID)
     VALUES (source.LANG_NM, source.LANG_BYTE, source.COLLECTED_AT, source.REPO_ID);
@@ -266,7 +268,9 @@ WHEN MATCHED AND target.COLLECTED_AT < source.COLLECTED_AT THEN
         target.REPO_ID = source.REPO_ID
 WHEN NOT MATCHED THEN
     INSERT (ID, FORK_NM, OWNER_ID, OWNER_NM, URL, CREATED_AT, UPDATED_AT, COLLECTED_AT, REPO_ID)
-    VALUES (source.ID, source.FORK_NM, source.OWNER_ID, source.OWNER_NM
+    VALUES (source.ID, source.FORK_NM, source.OWNER_ID, source.OWNER_NM, source.URL, source.CREATED_AT, source.UPDATED_AT, source.COLLECTED_AT, source.REPO_ID); 
+
+DROP TABLE IF EXISTS {{ params.table }};
 """
 
 
