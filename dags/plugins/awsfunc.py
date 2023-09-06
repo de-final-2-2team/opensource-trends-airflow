@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
 import json
-from airflow.models import Variable
 import boto3
+import botocore
+from airflow.models import Variable
+from datetime import datetime, timedelta
 from botocore.exceptions import NoCredentialsError
+
 
 class awsfunc:
     def __init__(self, service_name):
@@ -37,6 +41,7 @@ class awsfunc:
     
     def ec2tos3(self, Body, Bucket, Key):
         # ec2에서 추출한 데이터 s3로 write
+
         encoded_data = Body.encode('utf-8')
         self.client.put_object(Body=encoded_data, Bucket=Bucket, Key=Key)
 
@@ -44,3 +49,16 @@ class awsfunc:
         objects = self.client.list_objects_v2(Bucket=Bucket, Prefix = Path)
         contents = objects.get('Contents', [])
         return contents
+
+    def read_json_from_s3(self, Bucket, Path):
+        response = self.client.get_object(Bucket=Bucket, Key=Path)
+        content = response["Body"]
+        jsonObject = json.loads(content.read().strip())
+        return jsonObject
+    
+    def get_file_name_from_s3(self, Bucket, Path):
+        objects = self.client.list_objects(Bucket=Bucket, Prefix = Path)
+        contents = objects.get('Contents', [])
+        last_content = contents[-1]
+        file_path = last_content['Key']
+        return file_path
