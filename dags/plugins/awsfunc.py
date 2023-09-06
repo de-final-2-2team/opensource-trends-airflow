@@ -45,6 +45,11 @@ class awsfunc:
         encoded_data = Body.encode('utf-8')
         self.client.put_object(Body=encoded_data, Bucket=Bucket, Key=Key)
 
+    def get_file_list_from_s3(self, Bucket, Path):
+        objects = self.client.list_objects_v2(Bucket=Bucket, Prefix = Path)
+        contents = objects.get('Contents', [])
+        return contents
+
     def read_json_from_s3(self, Bucket, Path):
         response = self.client.get_object(Bucket=Bucket, Key=Path)
         content = response["Body"]
@@ -57,6 +62,3 @@ class awsfunc:
         last_content = contents[-1]
         file_path = last_content['Key']
         return file_path
-            
-            
-
