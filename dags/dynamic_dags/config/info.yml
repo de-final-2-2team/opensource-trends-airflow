@@ -1,0 +1,109 @@
+# dag config
+dag_id: 'info'
+schedule: '0 * * * *'
+max_active_runs: 3
+catchup: False
+
+# task config
+tasks:
+  release:
+    url: "https://api.github.com/repos/{FULL_NM}/tags"
+    params:
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      REL_NM: "name"
+    check:
+      ID:
+        type: string
+        nullable: false
+      REL_NM:
+        type: string
+        nullable: false
+  project:
+    url: "https://api.github.com/repos/{FULL_NM}/projects"
+    params:
+      state: "all"
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      PROJ_NM: "name"
+      BODY: "body"
+      PROJ_NO: "number"
+      PROJ_ST: "state"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+    check:
+      ID:
+        type: string
+        nullable: false
+      PROJ_NM:
+        type: string
+        nullable: false
+      BODY:
+        type: string
+        nullable: false
+      PROJ_NO:
+        type: integer
+        nullable: false
+      PROJ_ST:
+        type: string
+        nullable: false
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: false
+  language:
+    url: "https://api.github.com/repos/{FULL_NM}/languages"
+    check:
+      LANG_NM: 
+        type: string
+        nullable: False
+      LANG_BYTE:
+        type: integer
+        nullable: False
+  fork:
+    url: "https://api.github.com/repos/{FULL_NM}/forks"
+    params:
+      # q:
+      # sort: comments, reactions, reactions-+1, reactions--1, reactions-smile, reactions-thinking_face, reactions-heart, reactions-tada, interactions, created, updated
+      per_page: 30
+      page: 1
+    columns:
+      ID: "node_id"
+      FORK_NM: "name"
+      OWNER_ID: "owner.node_id"
+      OWNER_NM: "owner.login"
+      URL: "url"
+      CREATED_AT: "created_at"
+      UPDATED_AT: "updated_at"
+    check:
+      ID: 
+        type: string
+        nullable: False
+      FORK_NM: 
+        type: string
+        nullable: False
+      OWNER_ID: 
+        type: string
+        nullable: False
+      OWNER_NM: 
+        type: string
+        nullable: True
+      URL:
+        type: string
+        nullable: False
+      CREATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
+      UPDATED_AT:
+        type: string
+        # format: datetime
+        nullable: False
